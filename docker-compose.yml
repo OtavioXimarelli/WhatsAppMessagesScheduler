@@ -24,11 +24,14 @@ services:
     container_name: whatsapp_scheduler_app
     ports:
       - "8080:8080"
-    env_file:
-      - .env
     environment:
       # Override local database URL with container hostname 'postgres'
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/whatsapp_scheduler
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - EVOLUTION_API_URL=${EVOLUTION_API_URL}
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME}
     depends_on:
       postgres:
         condition: service_healthy
