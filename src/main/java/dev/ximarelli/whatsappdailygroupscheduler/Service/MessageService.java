@@ -1,0 +1,54 @@
+package dev.ximarelli.whatsappdailygroupscheduler.Service;
+
+
+import dev.ximarelli.whatsappdailygroupscheduler.Domain.MessageEntity;
+import dev.ximarelli.whatsappdailygroupscheduler.Repositories.MessageRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+public class MessageService {
+    private final MessageRepository repository;
+
+    public MessageService(MessageRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<MessageEntity> getAllMessages() {
+        return repository.findAll();
+    }
+
+    public Optional<MessageEntity> getByWeekDay(Integer weekDay) {
+        return repository.findByWeekDayAndIsActiveTrue(weekDay);
+    }
+
+    @Transactional
+    public MessageEntity saveOrUpdateMessages(MessageEntity messageEntity) {
+
+        if (messageEntity.getWeekDay() < 1 || messageEntity.getWeekDay() > 7) {
+            throw new IllegalArgumentException("Week day must be between 1 (Monday) and 7 (Sunday");
+        }
+
+        Optional<MessageEntity> existingMessage = repository.findByWeekDayAndIsActiveTrue(messageEntity.getWeekDay());
+
+        if (existingMessage.isPresent()) {
+            MessageEntity messageToUpdate = existingMessage.get();
+            messageToUpdate.setMessageType(messageEntity.getMessageType());
+            messageToUpdate.setTextContent(messageEntity.getTextContent());
+            return repository.save(messageToUpdate);
+        } else {
+            return repository.save(messageEntity);
+        }
+    }
+
+    @Transactional
+    public void deleteMessageById(UUID id) {
+        repository.deleteById(id);
+    }
+}
+
+

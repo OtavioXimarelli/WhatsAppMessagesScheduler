@@ -1,0 +1,27 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: WhatsAppDailyGroupScheduler
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/whatsapp_scheduler}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+evolution:
+  api:
+    url: ${EVOLUTION_API_URL:http://localhost:8080}
+    key: ${EVOLUTION_API_KEY:my_super_secret_key}
+  instance:
+    name: ${EVOLUTION_INSTANCE_NAME:my_whatsapp_instance}
+
+app:
+  whatsapp:
+    target-group-jid: ${WHATSAPP_TARGET_GROUP_JID:120363043837472938@g.us}

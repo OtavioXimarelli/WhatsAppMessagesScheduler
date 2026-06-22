@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: whatsapp_scheduler_db
+    environment:
+      POSTGRES_DB: whatsapp_scheduler
+      POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+    ports:
+      - "5555:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-postgres} -d whatsapp_scheduler"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp_scheduler_app
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # Override local database URL with container hostname 'postgres'
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/whatsapp_scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
