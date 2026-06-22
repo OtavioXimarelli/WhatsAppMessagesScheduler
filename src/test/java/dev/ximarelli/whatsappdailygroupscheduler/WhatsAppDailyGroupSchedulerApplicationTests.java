@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
+
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,7 +21,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -60,7 +60,7 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
 
         // POST message
         mockMvc.perform(post("/api/messages")
-                        .with(httpBasic("admin", "admin123"))
+
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(message)))
                 .andExpect(status().isOk())
@@ -70,7 +70,7 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
 
         // GET message by weekDay
         mockMvc.perform(get("/api/messages/3")
-                        .with(httpBasic("admin", "admin123")))
+)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.weekDay").value(3))
                 .andExpect(jsonPath("$.textContent").value("Hello Wednesday!"));
@@ -82,7 +82,7 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
         MessageEntity saved = messageRepository.save(message);
 
         mockMvc.perform(delete("/api/messages/" + saved.getId())
-                        .with(httpBasic("admin", "admin123")))
+)
                 .andExpect(status().isNoContent());
 
         Optional<MessageEntity> deleted = messageRepository.findById(saved.getId());
