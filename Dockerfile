@@ -2,10 +2,11 @@
 FROM maven:3-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
-# Download dependencies to cache them
-RUN mvn dependency:go-offline -B
+# Cache dependencies using Docker BuildKit cache mount
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
 COPY src ./src
-RUN mvn clean package -DskipTests
+# Build application using the same cache mount to avoid re-downloading
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests
 
 # Stage 2: Create the runtime image
 FROM eclipse-temurin:21-jre
