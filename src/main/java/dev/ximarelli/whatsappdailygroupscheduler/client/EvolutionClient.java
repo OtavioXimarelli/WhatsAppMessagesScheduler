@@ -23,9 +23,21 @@ public class EvolutionClient {
             @Value("${evolution.api.key}") String apiKey,
             @Value("${evolution.instance.name}") String instanceName) {
 
+        if (apiUrl == null || apiUrl.isBlank()) {
+            throw new IllegalArgumentException("evolution.api.url environment variable is not set or is empty");
+        }
+
+        String formattedApiUrl = apiUrl.trim();
+        if (!formattedApiUrl.startsWith("http://") && !formattedApiUrl.startsWith("https://")) {
+            formattedApiUrl = "http://" + formattedApiUrl;
+        }
+        if (formattedApiUrl.endsWith("/")) {
+            formattedApiUrl = formattedApiUrl.substring(0, formattedApiUrl.length() - 1);
+        }
+
         this.instanceName = instanceName;
         this.restClient = RestClient.builder()
-                .baseUrl(apiUrl)
+                .baseUrl(formattedApiUrl)
                 .defaultHeader("apikey", apiKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
