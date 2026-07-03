@@ -1,10 +1,8 @@
-package dev.ximarelli.whatsappdailygroupscheduler.Domain;
+package dev.ximarelli.whatsappdailygroupscheduler.domain;
 
-
-import dev.ximarelli.whatsappdailygroupscheduler.Enum.MessageType;
+import dev.ximarelli.whatsappdailygroupscheduler.enums.MessageType;
 import jakarta.persistence.*;
 
-import java.net.Inet4Address;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -16,7 +14,7 @@ public class MessageEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "week_days", unique = true, nullable = false)
+    @Column(name = "week_day", unique = true, nullable = false)
     private Integer weekDay;
 
     @Enumerated(EnumType.STRING)
@@ -25,7 +23,6 @@ public class MessageEntity {
 
     @Column(name = "text_content", columnDefinition = "TEXT")
     private String textContent;
-
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
@@ -39,7 +36,6 @@ public class MessageEntity {
         this.messageType = messageType;
         this.textContent = textContent;
         this.isActive = isActive != null ? isActive : true;
-
     }
 
     public UUID getId() {
@@ -87,19 +83,19 @@ public class MessageEntity {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MessageEntity that = (MessageEntity) o;
-        return Objects.equals(weekDay, that.weekDay);
+        return id != null && Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(weekDay);
+        return getClass().hashCode();
     }
 
     @Override
     public String toString() {
         return "MessageEntity{" +
                 "id=" + id +
-                ", dayOfWeek=" + weekDay +
+                ", weekDay=" + weekDay +
                 ", messageType=" + messageType +
                 ", isActive=" + isActive +
                 '}';

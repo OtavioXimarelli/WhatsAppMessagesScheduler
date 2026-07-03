@@ -1,15 +1,19 @@
-package dev.ximarelli.whatsappdailygroupscheduler.Client;
+package dev.ximarelli.whatsappdailygroupscheduler.client;
 
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class EvolutionClient {
+
+    private static final Logger log = LoggerFactory.getLogger(EvolutionClient.class);
 
     private final RestClient restClient;
     private final String instanceName;
@@ -32,14 +36,17 @@ public class EvolutionClient {
         payload.put("number", groupJid);
         payload.put("text", textMessage);
 
-        restClient.post()
-                .uri("/message/sendText/{instanceName}", instanceName)
-                .body(payload)
-                .retrieve()
-                .toBodilessEntity();
+        try {
+            restClient.post()
+                    .uri("/message/sendText/{instanceName}", instanceName)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
 
-        System.out.println("Message sent successfully to " + groupJid);
+            log.info("Message sent successfully to {}", groupJid);
+        } catch (RestClientException e) {
+            log.error("Failed to send message to {}: {}", groupJid, e.getMessage(), e);
+            throw e;
+        }
     }
-
-
 }

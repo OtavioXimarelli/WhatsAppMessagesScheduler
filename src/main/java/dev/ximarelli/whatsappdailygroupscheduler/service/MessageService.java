@@ -1,12 +1,12 @@
-package dev.ximarelli.whatsappdailygroupscheduler.Service;
+package dev.ximarelli.whatsappdailygroupscheduler.service;
 
-
-import dev.ximarelli.whatsappdailygroupscheduler.Domain.MessageEntity;
-import dev.ximarelli.whatsappdailygroupscheduler.Repositories.MessageRepository;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.MessageEntity;
+import dev.ximarelli.whatsappdailygroupscheduler.repository.MessageRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,8 +29,8 @@ public class MessageService {
     @Transactional
     public MessageEntity saveOrUpdateMessages(MessageEntity messageEntity) {
 
-        if (messageEntity.getWeekDay() < 1 || messageEntity.getWeekDay() > 7) {
-            throw new IllegalArgumentException("Week day must be between 1 (Monday) and 7 (Sunday");
+        if (messageEntity.getWeekDay() == null || messageEntity.getWeekDay() < 1 || messageEntity.getWeekDay() > 7) {
+            throw new IllegalArgumentException("Week day must be between 1 (Monday) and 7 (Sunday)");
         }
 
         Optional<MessageEntity> existingMessage = repository.findByWeekDayAndIsActiveTrue(messageEntity.getWeekDay());
@@ -47,8 +47,9 @@ public class MessageService {
 
     @Transactional
     public void deleteMessageById(UUID id) {
+        if (!repository.existsById(id)) {
+            throw new NoSuchElementException("Message not found with id " + id);
+        }
         repository.deleteById(id);
     }
 }
-
-
