@@ -33,12 +33,13 @@ public class MessageService {
             throw new IllegalArgumentException("Week day must be between 1 (Monday) and 7 (Sunday)");
         }
 
-        Optional<MessageEntity> existingMessage = repository.findByWeekDayAndIsActiveTrue(messageEntity.getWeekDay());
+        Optional<MessageEntity> existingMessage = repository.findByWeekDay(messageEntity.getWeekDay());
 
         if (existingMessage.isPresent()) {
             MessageEntity messageToUpdate = existingMessage.get();
             messageToUpdate.setMessageType(messageEntity.getMessageType());
             messageToUpdate.setTextContent(messageEntity.getTextContent());
+            messageToUpdate.setActive(messageEntity.isActive());
             return repository.save(messageToUpdate);
         } else {
             return repository.save(messageEntity);

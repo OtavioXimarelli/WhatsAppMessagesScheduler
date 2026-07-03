@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
 
+    Optional<MessageEntity> findByWeekDay(Integer weekDay);
+
     Optional<MessageEntity> findByWeekDayAndIsActiveTrue(Integer weekDay);
 
 }
