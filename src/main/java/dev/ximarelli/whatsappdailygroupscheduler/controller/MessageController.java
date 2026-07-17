@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@CrossOrigin
+@CrossOrigin(originPatterns = "*", allowCredentials = "true", allowedHeaders = "*", maxAge = 3600)
 @RequestMapping("/api/messages")
 public class MessageController {
     private final MessageService service;

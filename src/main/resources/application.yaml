@@ -3,6 +3,9 @@ spring:
     import: optional:file:.env[.properties]
   application:
     name: WhatsAppDailyGroupScheduler
+
+server:
+  forward-headers-strategy: framework
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/whatsapp_scheduler}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
