@@ -4,7 +4,9 @@ import dev.ximarelli.whatsappdailygroupscheduler.domain.MessageEntity;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.MessageDto;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.AppSettingsInfo;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.CronRequest;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.DirectMessageRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.ManualTriggerRequest;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.TargetGroupRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.TimeRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.service.MessageSchedulerService;
 import dev.ximarelli.whatsappdailygroupscheduler.service.MessageService;
@@ -95,10 +97,30 @@ public class MessageController {
         }
     }
 
+    @PostMapping({"/settings/target-group", "/settings/targetGroup"})
+    public ResponseEntity<?> updateTargetGroup(@RequestBody TargetGroupRequest request) {
+        try {
+            schedulerService.updateTargetGroupJid(request.targetGroupJid());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/trigger/manual")
     public ResponseEntity<?> triggerManualMessage(@RequestBody ManualTriggerRequest request) {
         try {
             schedulerService.executeManualMessageTrigger(request);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping({"/send", "/send-direct"})
+    public ResponseEntity<?> sendDirectMessage(@RequestBody DirectMessageRequest request) {
+        try {
+            schedulerService.sendDirectMessage(request);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

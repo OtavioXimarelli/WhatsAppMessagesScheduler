@@ -2,9 +2,12 @@ package dev.ximarelli.whatsappdailygroupscheduler;
 
 import tools.jackson.databind.ObjectMapper;
 import dev.ximarelli.whatsappdailygroupscheduler.client.EvolutionClient;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.GroupDto;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.GroupEntity;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.MessageEntity;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.MessageDto;
 import dev.ximarelli.whatsappdailygroupscheduler.enums.MessageType;
+import dev.ximarelli.whatsappdailygroupscheduler.repository.GroupRepository;
 import dev.ximarelli.whatsappdailygroupscheduler.repository.MessageRepository;
 import dev.ximarelli.whatsappdailygroupscheduler.repository.SettingRepository;
 import dev.ximarelli.whatsappdailygroupscheduler.service.MessageSchedulerService;
@@ -42,6 +45,9 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
     private SettingRepository settingRepository;
 
     @Autowired
+    private GroupRepository groupRepository;
+
+    @Autowired
     private MessageSchedulerService schedulerService;
 
     @Autowired
@@ -54,6 +60,7 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
     void setUp() {
         messageRepository.deleteAll();
         settingRepository.deleteAll();
+        groupRepository.deleteAll();
     }
 
     @Test
@@ -169,5 +176,98 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.database").value("CONNECTED"));
+    }
+
+    @Test
+    void testAddAndSelectGroup() throws Exception {
+        GroupDto group1 = new GroupDto(null, "Group One", "111@g.us", false);
+        GroupDto group2 = new GroupDto(null, "Group Two", "222@g.us", true);
+
+        String resp1 = mockMvc.perform(post("/api/messages/groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(group1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupJid").value("111@g.us"))
+                .andExpect(jsonPath("$.isSelected").value(false))
+                .andReturn().getResponse().getContentAsString();
+
+        mockMvc.perform(post("/api/messages/groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(group2)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groupJid").value("222@g.us"))
+                .andExpect(jsonPath("$.isSelected").value(true));
+
+        mockMvc.perform(get("/api/messages/groups"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        // Select group 1
+        GroupDto savedGroup1 = objectMapper.readValue(resp1, GroupDto.class);
+        mockMvc.perform(post("/api/messages/groups/" + savedGroup1.id() + "/select"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSelected").value(true));
+
+        // Settings should now show targetGroupJid = 111@g.us
+        mockMvc.perform(get("/api/messages/settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetGroupJid").value("111@g.us"))
+                .andExpect(jsonPath("$.groups.length()").value(2));
+    }
+
+    @Test
+    void testMultipleGroupsBroadcast() {
+        groupRepository.save(new GroupEntity("Team Alpha", "111@g.us", true));
+        groupRepository.save(new GroupEntity("Team Beta", "222@g.us", true));
+
+        java.time.ZoneId brazilZone = java.time.ZoneId.of("America/Sao_Paulo");
+        int currentDay = LocalDate.now(brazilZone).getDayOfWeek().getValue();
+        String expectedMessage = "Broadcast to all selected groups!";
+
+        MessageEntity msg = new MessageEntity(currentDay, MessageType.TEXT, expectedMessage, true);
+        messageRepository.save(msg);
+
+        schedulerService.executeDailyMessageTrigger();
+
+        verify(evolutionClient, times(1)).sendTextMessage(eq("111@g.us"), eq(expectedMessage));
+        verify(evolutionClient, times(1)).sendTextMessage(eq("222@g.us"), eq(expectedMessage));
+    }
+
+    @Test
+    void testUpdateTargetGroupSettingsEndpoint() throws Exception {
+        mockMvc.perform(post("/api/messages/settings/target-group")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"targetGroupJid\":\"333@g.us\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/messages/settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetGroupJid").value("333@g.us"));
+    }
+
+    @Test
+    void testSendDirectToSpecificPhoneNumber() throws Exception {
+        String phoneNumber = "5511999999999@s.whatsapp.net";
+        String message = "Hello direct number!";
+
+        mockMvc.perform(post("/api/messages/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"number\":\"" + phoneNumber + "\",\"message\":\"" + message + "\"}"))
+                .andExpect(status().isOk());
+
+        verify(evolutionClient, times(1)).sendTextMessage(eq(phoneNumber), eq(message));
+    }
+
+    @Test
+    void testManualTriggerWithNumberAlias() throws Exception {
+        String phoneNumber = "5511888888888";
+        String message = "Hello manual phone!";
+
+        mockMvc.perform(post("/api/messages/trigger/manual")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"number\":\"" + phoneNumber + "\",\"message\":\"" + message + "\"}"))
+                .andExpect(status().isOk());
+
+        verify(evolutionClient, times(1)).sendTextMessage(eq(phoneNumber), eq(message));
     }
 }
