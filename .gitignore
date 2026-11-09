@@ -32,3 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 .env
+
+### Local docs (implementation specs, not tracked) ###
+BACKEND_CHAT_PICKER_CHANGES.md
