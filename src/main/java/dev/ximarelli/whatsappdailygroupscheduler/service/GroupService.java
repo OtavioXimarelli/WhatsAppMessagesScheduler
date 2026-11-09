@@ -96,6 +96,14 @@ public class GroupService {
     }
 
     @Transactional
+    public GroupEntity toggleFavorite(UUID id) {
+        GroupEntity target = groupRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Group not found with id " + id));
+        target.setFavorite(!target.isFavorite());
+        return groupRepository.save(target);
+    }
+
+    @Transactional
     public void deleteGroupById(UUID id) {
         if (!groupRepository.existsById(id)) {
             throw new NoSuchElementException("Group not found with id " + id);

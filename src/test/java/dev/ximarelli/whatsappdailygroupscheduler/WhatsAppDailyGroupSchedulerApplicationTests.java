@@ -180,8 +180,8 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
 
     @Test
     void testAddAndSelectGroup() throws Exception {
-        GroupDto group1 = new GroupDto(null, "Group One", "111@g.us", false);
-        GroupDto group2 = new GroupDto(null, "Group Two", "222@g.us", true);
+        GroupDto group1 = new GroupDto(null, "Group One", "111@g.us", false, false);
+        GroupDto group2 = new GroupDto(null, "Group Two", "222@g.us", true, false);
 
         String resp1 = mockMvc.perform(post("/api/messages/groups")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -213,6 +213,30 @@ class WhatsAppDailyGroupSchedulerApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.targetGroupJid").value("111@g.us"))
                 .andExpect(jsonPath("$.groups.length()").value(2));
+    }
+
+    @Test
+    void testToggleFavorite() throws Exception {
+        GroupEntity group = groupRepository.save(new GroupEntity("Fav Group", "444@g.us", false));
+
+        // Initially not favorite
+        mockMvc.perform(get("/api/messages/groups/" + group.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isFavorite").value(false));
+
+        // Toggle on
+        mockMvc.perform(post("/api/messages/groups/" + group.getId() + "/favorite"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isFavorite").value(true));
+
+        // Toggle off
+        mockMvc.perform(post("/api/messages/groups/" + group.getId() + "/favorite"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isFavorite").value(false));
+
+        // Unknown id -> 404
+        mockMvc.perform(post("/api/messages/groups/" + UUID.randomUUID() + "/favorite"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

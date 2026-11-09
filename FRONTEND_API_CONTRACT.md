@@ -48,6 +48,23 @@ export interface GroupDto {
   groupJid: string;
   /** Whether this group ID is currently active/selected to receive broadcasts */
   isSelected?: boolean;
+  /** Whether this group is starred for quick access in the ChatPicker */
+  isFavorite?: boolean;
+}
+
+export interface WhatsAppChatDto {
+  /** WhatsApp JID: '120363...@g.us' (group) or '5511...@s.whatsapp.net' (contact) */
+  jid: string;
+  /** Display name: group subject or contact pushName */
+  name: string;
+  /** Chat type */
+  type: 'GROUP' | 'CONTACT';
+  /** Profile picture URL (nullable) */
+  profilePicUrl?: string | null;
+  /** Number of participants (groups only, nullable) */
+  participantsCount?: number | null;
+  /** Whether this chat is starred as favorite (merged from local GroupDto) */
+  isFavorite: boolean;
 }
 
 export interface AppSettingsInfo {
@@ -128,6 +145,11 @@ export interface ApiErrorResponse {
 | **DELETE** | `/api/messages/groups/{id}` | Delete a group/chat target | — | `204 No Content` |
 | **POST** | `/api/messages/groups/{id}/select` | Select/activate a group target to use | — (`?exclusive=true/false`) | `200 OK` (`GroupDto`) / `400 Bad Request` |
 | **POST** | `/api/messages/groups/{id}/deselect` | Deselect a group target | — | `200 OK` (`GroupDto`) / `400 Bad Request` |
+| **POST** | `/api/messages/groups/{id}/favorite` | Toggle favorite star on a saved group | — | `200 OK` (`GroupDto`) / `404 Not Found` |
+| **GET** | `/api/messages/whatsapp-chats` | List all live WhatsApp chats (groups + contacts) from Evolution API | — | `200 OK` (`WhatsAppChatDto[]`) |
+| **GET** | `/api/messages/whatsapp-chats/groups` | List only live WhatsApp groups | — | `200 OK` (`WhatsAppChatDto[]`) |
+| **GET** | `/api/messages/whatsapp-chats/contacts` | List only live WhatsApp contacts | — | `200 OK` (`WhatsAppChatDto[]`) |
+| **GET** | `/api/messages/whatsapp-chats/search?q={query}` | Search live WhatsApp chats by name or JID | — | `200 OK` (`WhatsAppChatDto[]`) |
 | **GET** | `/api/messages/health` | Check API & database health | — | `200 OK` / `503 Service Unavailable` |
 
 ---
@@ -342,13 +364,15 @@ Retrieves all configured WhatsApp group and chat targets.
       "id": "a1b2c3d4-e5f6-7a8b-9c0d-1234567890ab",
       "name": "Engineering Team",
       "groupJid": "120363043837472938@g.us",
-      "isSelected": true
+      "isSelected": true,
+      "isFavorite": true
     },
     {
       "id": "f9e8d7c6-b5a4-3c2d-1e0f-9876543210ab",
       "name": "Management Chat",
       "groupJid": "5511999999999@s.whatsapp.net",
-      "isSelected": false
+      "isSelected": false,
+      "isFavorite": false
     }
   ]
   ```
@@ -378,6 +402,13 @@ Selects/activates a specific group target to receive scheduled or manual broadca
 
 ---
 
+#### `POST /api/messages/groups/{id}/favorite`
+Toggles the favorite (starred) flag on a saved group target. Favorited groups appear first in the frontend ChatPicker.
+* **Response `200 OK`:** Returns the updated `GroupDto` with the new `isFavorite` value.
+* **Response `404 Not Found`:** Group with the given `id` does not exist.
+
+---
+
 #### `POST /api/messages/settings/target-group`
 Updates the primary default `targetGroupJid` directly in settings.
 * **Request Body (`TargetGroupRequest`):**
@@ -390,7 +421,54 @@ Updates the primary default `targetGroupJid` directly in settings.
 
 ---
 
-### 4.5 System & Health
+### 4.5 WhatsApp Chats (Live from Evolution API)
+
+These endpoints power the ChatPicker. They proxy the connected Evolution API instance and return real WhatsApp groups/contacts, merging in the local `isFavorite` flag. If the Evolution API is unreachable, they return an empty list with `200 OK`.
+
+#### `GET /api/messages/whatsapp-chats`
+Fetches all WhatsApp chats (groups + contacts) from the connected Evolution API instance.
+* **Response `200 OK`:**
+  ```json
+  [
+    {
+      "jid": "120363043837472938@g.us",
+      "name": "Engineering Team",
+      "type": "GROUP",
+      "profilePicUrl": "https://...",
+      "participantsCount": 15,
+      "isFavorite": true
+    },
+    {
+      "jid": "5511999999999@s.whatsapp.net",
+      "name": "John Doe",
+      "type": "CONTACT",
+      "profilePicUrl": null,
+      "participantsCount": null,
+      "isFavorite": false
+    }
+  ]
+  ```
+
+---
+
+#### `GET /api/messages/whatsapp-chats/groups`
+Fetches only WhatsApp groups. Same response format as `/whatsapp-chats`.
+
+---
+
+#### `GET /api/messages/whatsapp-chats/contacts`
+Fetches only WhatsApp contacts. Same response format as `/whatsapp-chats`.
+
+---
+
+#### `GET /api/messages/whatsapp-chats/search?q={query}`
+Searches WhatsApp chats by name or JID.
+* **Query Parameter:** `q` (search term). Omitting it or sending an empty string returns all chats.
+* **Response `200 OK`:** Same format as `/whatsapp-chats`
+
+---
+
+### 4.6 System & Health
 
 #### `GET /api/messages/health`
 Checks application health and verifies if the PostgreSQL database connection is active.
@@ -421,6 +499,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import type {
   MessageDto,
   GroupDto,
+  WhatsAppChatDto,
   AppSettingsInfo,
   CronRequest,
   TimeRequest,
@@ -518,6 +597,34 @@ export const WhatsAppSchedulerApi = {
 
   selectGroup: async (id: string, exclusive = true): Promise<GroupDto> => {
     const { data } = await api.post<GroupDto>(`/groups/${id}/select?exclusive=${exclusive}`);
+    return data;
+  },
+
+  toggleFavoriteGroup: async (id: string): Promise<GroupDto> => {
+    const { data } = await api.post<GroupDto>(`/groups/${id}/favorite`);
+    return data;
+  },
+
+  // --- WhatsApp Chats (Live from Evolution API, for ChatPicker) ---
+  getAllWhatsAppChats: async (): Promise<WhatsAppChatDto[]> => {
+    const { data } = await api.get<WhatsAppChatDto[]>('/whatsapp-chats');
+    return data;
+  },
+
+  getWhatsAppGroups: async (): Promise<WhatsAppChatDto[]> => {
+    const { data } = await api.get<WhatsAppChatDto[]>('/whatsapp-chats/groups');
+    return data;
+  },
+
+  getWhatsAppContacts: async (): Promise<WhatsAppChatDto[]> => {
+    const { data } = await api.get<WhatsAppChatDto[]>('/whatsapp-chats/contacts');
+    return data;
+  },
+
+  searchWhatsAppChats: async (query: string): Promise<WhatsAppChatDto[]> => {
+    const { data } = await api.get<WhatsAppChatDto[]>('/whatsapp-chats/search', {
+      params: { q: query },
+    });
     return data;
   },
 

@@ -8,6 +8,8 @@ import dev.ximarelli.whatsappdailygroupscheduler.domain.DirectMessageRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.ManualTriggerRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.TargetGroupRequest;
 import dev.ximarelli.whatsappdailygroupscheduler.domain.TimeRequest;
+import dev.ximarelli.whatsappdailygroupscheduler.domain.WhatsAppChatDTO;
+import dev.ximarelli.whatsappdailygroupscheduler.service.EvolutionApiProxyService;
 import dev.ximarelli.whatsappdailygroupscheduler.service.MessageSchedulerService;
 import dev.ximarelli.whatsappdailygroupscheduler.service.MessageService;
 import org.springframework.http.HttpStatus;
@@ -26,10 +28,14 @@ import java.util.stream.Collectors;
 public class MessageController {
     private final MessageService service;
     private final MessageSchedulerService schedulerService;
+    private final EvolutionApiProxyService evolutionApiProxyService;
 
-    public MessageController(MessageService service, MessageSchedulerService schedulerService) {
+    public MessageController(MessageService service,
+                             MessageSchedulerService schedulerService,
+                             EvolutionApiProxyService evolutionApiProxyService) {
         this.service = service;
         this.schedulerService = schedulerService;
+        this.evolutionApiProxyService = evolutionApiProxyService;
     }
 
     @GetMapping
@@ -136,6 +142,47 @@ public class MessageController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("status", "DOWN", "database", "DISCONNECTED", "error", e.getMessage()));
         }
+    }
+
+    // ==========================================
+    // WHATSAPP CHATS (Live from Evolution API)
+    // ==========================================
+
+    /**
+     * Fetch all WhatsApp chats (groups + contacts) from Evolution API.
+     */
+    @GetMapping("/whatsapp-chats")
+    public ResponseEntity<List<WhatsAppChatDTO>> getAllWhatsAppChats() {
+        List<WhatsAppChatDTO> chats = evolutionApiProxyService.fetchAllChats();
+        return ResponseEntity.ok(chats);
+    }
+
+    /**
+     * Fetch only WhatsApp groups from Evolution API.
+     */
+    @GetMapping("/whatsapp-chats/groups")
+    public ResponseEntity<List<WhatsAppChatDTO>> getWhatsAppGroups() {
+        List<WhatsAppChatDTO> groups = evolutionApiProxyService.fetchGroupsOnly();
+        return ResponseEntity.ok(groups);
+    }
+
+    /**
+     * Fetch only WhatsApp contacts from Evolution API.
+     */
+    @GetMapping("/whatsapp-chats/contacts")
+    public ResponseEntity<List<WhatsAppChatDTO>> getWhatsAppContacts() {
+        List<WhatsAppChatDTO> contacts = evolutionApiProxyService.fetchContactsOnly();
+        return ResponseEntity.ok(contacts);
+    }
+
+    /**
+     * Search WhatsApp chats by name or JID.
+     */
+    @GetMapping("/whatsapp-chats/search")
+    public ResponseEntity<List<WhatsAppChatDTO>> searchWhatsAppChats(
+            @RequestParam(required = false, defaultValue = "") String q) {
+        List<WhatsAppChatDTO> results = evolutionApiProxyService.searchChats(q);
+        return ResponseEntity.ok(results);
     }
 
     @ExceptionHandler(NoSuchElementException.class)

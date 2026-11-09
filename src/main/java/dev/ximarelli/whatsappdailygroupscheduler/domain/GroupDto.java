@@ -8,14 +8,16 @@ public record GroupDto(
         UUID id,
         String name,
         @JsonProperty("groupJid") @JsonAlias({"chatId", "jid", "targetGroupId", "targetGroupJid", "number", "phone", "phoneNumber", "targetNumber"}) String groupJid,
-        @JsonProperty("isSelected") @JsonAlias({"active", "selected", "isActive"}) boolean isSelected
+        @JsonProperty("isSelected") @JsonAlias({"active", "selected", "isActive"}) boolean isSelected,
+        @JsonProperty("isFavorite") @JsonAlias({"favorite", "starred"}) boolean isFavorite
 ) {
     public static GroupDto fromEntity(GroupEntity entity) {
         return new GroupDto(
                 entity.getId(),
                 entity.getName(),
                 entity.getGroupJid(),
-                entity.isSelected()
+                entity.isSelected(),
+                entity.isFavorite()
         );
     }
 
@@ -25,6 +27,7 @@ public record GroupDto(
         entity.setName(this.name());
         entity.setGroupJid(this.groupJid());
         entity.setSelected(this.isSelected());
+        entity.setFavorite(this.isFavorite());
         return entity;
     }
 }

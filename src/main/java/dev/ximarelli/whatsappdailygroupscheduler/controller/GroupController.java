@@ -80,6 +80,17 @@ public class GroupController {
         }
     }
 
+    @PostMapping("/{id}/favorite")
+    public ResponseEntity<?> toggleFavorite(@PathVariable UUID id) {
+        try {
+            GroupEntity updated = groupService.toggleFavorite(id);
+            return ResponseEntity.ok(GroupDto.fromEntity(updated));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(NoSuchElementException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

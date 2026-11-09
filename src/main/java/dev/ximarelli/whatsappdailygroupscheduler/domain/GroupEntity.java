@@ -21,8 +21,12 @@ public class GroupEntity {
     @Column(name = "is_selected", nullable = false)
     private boolean isSelected;
 
+    @Column(name = "is_favorite", columnDefinition = "boolean default false")
+    private boolean isFavorite;
+
     public GroupEntity() {
         this.isSelected = true;
+        this.isFavorite = false;
     }
 
     public GroupEntity(String name, String groupJid, boolean isSelected) {
@@ -70,6 +74,14 @@ public class GroupEntity {
         isSelected = selected;
     }
 
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -90,6 +102,7 @@ public class GroupEntity {
                 ", name='" + name + '\'' +
                 ", groupJid='" + groupJid + '\'' +
                 ", isSelected=" + isSelected +
+                ", isFavorite=" + isFavorite +
                 '}';
     }
 }
